@@ -29,10 +29,11 @@
             ></v-text-field>
 
             <v-text-field
-              v-model="place.state"
+              v-model="place.address"
               label="Direction"
               required
               outlined
+              @change="getCoordinates()"
             ></v-text-field>
 
             <v-layout row wrap>
@@ -61,7 +62,7 @@
               v-model="place.location.lat"
               label="Latitude"
               type="number"
-              required
+              disabled
               outlined
               prepend-icon="mdi-map"
             ></v-text-field>
@@ -70,7 +71,7 @@
               v-model="place.location.long"
               label="Longitude"
               type="number"
-              required
+              disabled
               outlined
               prepend-icon="mdi-map"
             ></v-text-field>
@@ -114,8 +115,9 @@
 </template>
 
 <script>
-// import MsgDialog from './views/MsgDialog.vue'
 var moment = require('moment')
+const creds = require('../utils/creds.json')
+const API_KEY = creds.gmaps_key
 
 export default {
   data: () => ({
@@ -153,6 +155,23 @@ export default {
         this.places = response.data
         // console.log('places', this.places)
       }, response => {
+      })
+    },
+    getCoordinates () {
+      const link = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + this.place.address + `&key=${API_KEY}`
+      this.$http.get(link).then(response => {
+        const results = response.body.results
+
+        if (results.length == 0) {
+          console.log('error')
+        } else {
+          const coordinates = results[0].geometry.location
+          console.log(coordinates)
+          this.place.location.long = coordinates.lng
+          this.place.location.lat = coordinates.lat
+        }
+      }, error => {
+        console.log(error)
       })
     },
     reset () {
