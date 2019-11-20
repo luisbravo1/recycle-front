@@ -1,5 +1,23 @@
 <template>
-  <div class="google-map" :id="mapName"></div>
+  <div class="google-map" :id="mapName">
+    <v-dialog v-model="dialog" max-width="600">
+      <v-card>
+        <v-card-title>Nombre</v-card-title>
+        <v-card-text>
+          <v-layout row wrap pa-3>
+            <div><b>Tipo de Reciclaje:</b></div>
+          </v-layout>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn dark color="blue" @click="getDirections(0)">Get Directions</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-btn absolute fab right >
+      <v-icon>mdi-plus</v-icon>
+    </v-btn>
+  </div>
 </template>
 <script>
 export default {
@@ -7,6 +25,8 @@ export default {
   props: ['name'],
   data: function () {
     return {
+      clear: true,
+      dialog: false,
       mapName: this.name + "-map",
       markerCoordinates: [
         {
@@ -26,8 +46,55 @@ export default {
         }
       ],
       map: null,
+      directionsService: null,
+      directionsRenderer: null,
       bounds: null,
-      markers: []
+      markers: [],
+      pos: null
+    }
+  },
+  methods: {
+    getDirections (index) {
+      this.dialog = false
+      var start = { lat: this.pos.lat, lng: this.pos.lng };
+      var end = { lat: this.markerCoordinates[index].latitude, lng: this.markerCoordinates[index].longitude };
+
+      var request = {
+        origin: start,
+        destination: end,
+        travelMode: 'DRIVING'
+      };
+
+      this.directionsService.route(request, (result, status) => {
+        if (status == 'OK') {
+          this.directionsRenderer.setDirections(result);
+          this.showSteps(result)
+        }
+      });
+    },
+    showSteps(directionResult) {
+      // For each step, place a marker, and add the text to the marker's
+      // info window. Also attach the marker to an array so we
+      // can keep track of it and remove it when calculating new
+      // routes.
+      var myRoute = directionResult.routes[0].legs[0];
+      var markerArray = []
+
+      for (var i = 0; i < myRoute.steps.length; i++) {
+          var marker = new google.maps.Marker({
+            position: myRoute.steps[i].start_point,
+            map: this.map
+          });
+          this.attachInstructionText(marker, myRoute.steps[i].instructions);
+          markerArray[i] = marker;
+      }
+    },
+    attachInstructionText(marker, text) {
+      var stepDisplay = new google.maps.InfoWindow();
+      google.maps.event.addListener(marker, 'click', function() {
+        stepDisplay.setContent(text);
+        stepDisplay.open(this.map, marker);
+      })
     }
   },
   mounted: function () {
@@ -40,9 +107,12 @@ export default {
       center: new google.maps.LatLng(mapCentre.latitude, mapCentre.longitude)
     }
 
-    const infowindow = new google.maps.InfoWindow()
-
     this.map = new google.maps.Map(element, options)
+    this.directionsService = new google.maps.DirectionsService()
+    this.directionsRenderer = new google.maps.DirectionsRenderer()
+
+    this.directionsRenderer.setMap(this.map);
+
     this.markerCoordinates.forEach((coord) => {
       const position = new google.maps.LatLng(coord.latitude, coord.longitude)
       const marker = new google.maps.Marker({ 
@@ -55,12 +125,28 @@ export default {
       this.map.fitBounds(this.bounds.extend(position))
     })
 
+    var vm = this
     this.markers.forEach((marker) => {
       google.maps.event.addListener(marker, 'click', function() {
-        infowindow.setContent(marker.title)
-        infowindow.open(this.map, marker)
+        // infowindow.setContent(marker.title + '<a class=\"btn btn-danger\" @click.native=\"this.getDirections()\">directions</a>')
+        vm.dialog = true
+        // infowindow.open(this.map, marker)
       })
     })
+  },
+  created () {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        this.pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }
+      }, error => {
+        console.log(error)
+      });
+    } else {
+      console.log('Browser doesnt support Geolocation')
+    }
   }
 };
 </script>
