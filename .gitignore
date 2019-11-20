@@ -1,6 +1,8 @@
 .DS_Store
 node_modules
 /dist
+/public/index.html
+/src/utils/creds.json
 
 # local env files
 .env.local
