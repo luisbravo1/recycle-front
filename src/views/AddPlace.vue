@@ -1,7 +1,7 @@
 <template>
   <v-container fluid>
     <v-layout row wrap class="justify-center">
-      <v-flex xs8>
+      <v-flex xs12 md8>
         <v-card outlined>
           <v-flex xs12 pa-4 pl-8 style="background-color: #00979c;">
             <h1 style="color: white;">Add a new Place</h1>
@@ -57,7 +57,7 @@
                 ></v-text-field>
               </v-flex>
             </v-layout>
- 
+
             <v-text-field
               v-model="place.location.lat"
               label="Latitude"
@@ -76,22 +76,24 @@
               prepend-icon="mdi-map"
             ></v-text-field>
 
-            <v-btn
-              color="error"
-              class="mr-4"
-              @click="reset"
-            >
-              Clear
-            </v-btn>
+            <div class="text-center">
+              <v-btn
+                color="error"
+                class="mr-4"
+                @click="reset"
+              >
+                Clear
+              </v-btn>
 
-            <v-btn
-              :disabled="!validPlace"
-              color="success"
-              class="mr-4"
-              @click="submit()"
-            >
-              Submit
-            </v-btn>
+              <v-btn
+                :disabled="!validPlace"
+                color="success"
+                class="mr-4"
+                @click="postPlace()"
+              >
+                Submit
+              </v-btn>
+            </div>
           </v-form>
         </v-card>
       </v-flex>
@@ -131,7 +133,7 @@ export default {
       name: '',
       type: '',
       startTime: '',
-      endtime: '',
+      endTime: '',
       address: '',
       location: {
         lat: null,
@@ -140,21 +142,22 @@ export default {
     }
   }),
   components: {
-    // MsgDialog
   },
   methods: {
-    getEvents () {
-      this.$http.get('events/').then(response => {
-        this.events = response.data
-        // console.log('events', this.events)
+    postPlace () {
+      console.log(this.place)
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.post('places/', this.place, options).then(response => {
+        this.dialog = true
+        this.dialogMessage = 'Success posting place'
       }, response => {
-      })
-    },
-    getPlaces () {
-      this.$http.get('places/').then(response => {
-        this.places = response.data
-        // console.log('places', this.places)
-      }, response => {
+        this.dialog = true
+        this.dialogMessage = 'Error posting place'
       })
     },
     getCoordinates () {
@@ -162,7 +165,7 @@ export default {
       this.$http.get(link).then(response => {
         const results = response.body.results
 
-        if (results.length == 0) {
+        if (results.length === 0) {
           console.log('error')
         } else {
           const coordinates = results[0].geometry.location
