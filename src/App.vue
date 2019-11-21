@@ -164,12 +164,12 @@ export default {
         icon: 'add_box'
       },
       {
-        to: '/',
+        to: '/info',
         text: 'Info',
         icon: 'info'
       },
       {
-        to: '/',
+        to: '/contact',
         text: 'Contact',
         icon: 'local_phone'
       }
@@ -188,7 +188,7 @@ export default {
         case 'xl': return 4
         default: return 0
       }
-    },
+    }
   },
   methods: {
     goto (link) {
