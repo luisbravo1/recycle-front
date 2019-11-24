@@ -1,27 +1,56 @@
 <template>
   <div class="wrapper">
     <div class="google-map" :id="mapName">
-      <v-dialog v-model="dialog" max-width="600">
+      <v-dialog v-model="dialog" max-width="500">
         <v-card>
-          <v-card-title>Nombre</v-card-title>
+          <v-card-title>{{ selectedPlace.name }}</v-card-title>
           <v-card-text>
-            <v-layout row wrap pa-3>
-              <div><b>Tipo de Reciclaje:</b></div>
+            <v-layout row wrap px-3>
+              <v-flex xs12>
+                <div><b>Tipo de Reciclaje:</b> {{ selectedPlace.type }}</div>
+              </v-flex>
+              <v-flex xs12>
+                <div><b>Horario:</b> {{ selectedPlace.startTime }} - {{selectedPlace.endTime}}</div>
+              </v-flex>
+              <v-flex xs12>
+                <div><b>Dirección:</b> {{ selectedPlace.address }}</div>
+              </v-flex>
             </v-layout>
           </v-card-text>
-          <v-card-actions>
+          <v-card-actions class="pb-6 pr-8">
             <v-spacer></v-spacer>
-            <v-btn dark color="blue" @click="getDirections(0)">Get Directions</v-btn>
+            <v-btn dark color="blue" @click="getDirections(selectedPlace.index)">Get Directions</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <v-btn absolute fab right >
-        <v-icon>mdi-plus</v-icon>
-      </v-btn>
     </div>
     <div class="over-map">
-      Aqui va el filter
+      <!-- TODO: Mobile Friendly -->
+      <v-layout>
+          <v-checkbox v-model="filters" label="Plastico" value="Plastico" class="pr-8"></v-checkbox>
+          <v-checkbox v-model="filters" label="Papel" value="Papel" class="pr-8"></v-checkbox>
+          <v-checkbox v-model="filters" label="Vidrio" value="Vidrio" class="pr-8"></v-checkbox>
+          <v-checkbox v-model="filters" label="Metal" value="Metal" class="pr-8"></v-checkbox>
+          <v-checkbox v-model="filters" label="Electronicos" value="Electronicos" class="pr-8"></v-checkbox>
+          <v-checkbox v-model="filters" label="Pilas" value="Pilas" class="pr-8"></v-checkbox>
+        <div class="pt-3">
+          <v-btn color="info" @click="filterPlaces()">Apply</v-btn>
+        </div>
+      </v-layout>
     </div>
+    <v-dialog v-model="errorDialog" max-width="300" max-height="300" persistent>
+      <v-card>
+        <v-card-text class="justify-center">
+          <div class="text-center pt-4">
+            <img width="100" height="100" src="../assets/error.png"><br><br>
+            <span>No hay lugares que coincidan con tus filtros</span>
+          </div>
+        </v-card-text>
+        <v-card-actions class="justify-center pb-4">
+          <v-btn dark color="error" @click="reset()">Aceptar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 <script>
@@ -32,24 +61,12 @@ export default {
     return {
       clear: true,
       dialog: false,
+      errorDialog: false,
       mapName: this.name + '-map',
-      markerCoordinates: [
-        {
-          latitude: 25.654441,
-          longitude: -100.287157,
-          title: '<h3>Centro de Reciclaje TEC</h3><br><span><b>Tipo de Reciclaje:</b> Cárton y Papel</span><br><span><b>Horarios:</b> 9:00 am - 6:00 pm</span><br><span><b>Dirección:</b> Sin Nombre de Colonia 34, Tecnológico, 64849 Monterrey, Nuevo Leon</span>'
-        },
-        {
-          latitude: 25.654830,
-          longitude: -100.304573,
-          title: '<h3>Reciclados GR</h3><br><span><b>Tipo de Reciclaje:</b> Metales</span><br><span><b>Horarios:</b> 10:00 am - 5:00 pm</span><br><span><b>Dirección:</b> Sinaloa #1400, Nuevo Repueblo, 64720 Monterrey, N.L.</span>'
-        },
-        {
-          latitude: 25.665165,
-          longitude: -100.296542,
-          title: '<h3>E.W. basura electrónica</h3><br><span><b>Tipo de Reciclaje:</b> Electrónica</span><br><span><b>Horarios:</b> 9:00 am - 6:00 pm</span><br><span><b>Dirección:</b> 2a. Zona 239, Caracol, 64810 Monterrey, N.L.</span>'
-        }
-      ],
+      places: [],
+      filteredPlaces: [],
+      selectedPlace: {},
+      filters: [],
       map: null,
       directionsService: null,
       directionsRenderer: null,
@@ -58,11 +75,43 @@ export default {
       pos: null
     }
   },
+  computed: {
+  },
   methods: {
+    getPlaces () {
+      this.$http.get('places/').then(response => {
+        this.places = response.data
+        this.filteredPlaces = this.places
+        // console.log(this.places)
+        this.drawMap()
+      }, response => {
+      })
+    },
+    filterPlaces () {
+      if (!this.filters.length)
+        this.filteredPlaces = this.places
+      else
+        this.filteredPlaces = this.places.filter(place => this.filters.includes(place.type))
+
+      if (!this.filteredPlaces.length)
+        this.errorDialog = true
+      else 
+        this.drawMap()
+    },
+    reset () {
+      this.filteredPlaces = this.places
+      this.filters = []
+      this.drawMap()
+      this.errorDialog = false
+    },
+    openInfoDialog (selectedMarker) {
+      this.selectedPlace = selectedMarker
+      this.dialog = true
+    },
     getDirections (index) {
       this.dialog = false
       var start = { lat: this.pos.lat, lng: this.pos.lng }
-      var end = { lat: this.markerCoordinates[index].latitude, lng: this.markerCoordinates[index].longitude }
+      var end = { lat: this.filteredPlaces[index].location[0].latitude, lng: this.filteredPlaces[index].location[0].longitude }
 
       var request = {
         origin: start,
@@ -100,46 +149,50 @@ export default {
         stepDisplay.setContent(text)
         stepDisplay.open(this.map, marker)
       })
-    }
-  },
-  mounted: function () {
-    this.bounds = new google.maps.LatLngBounds()
+    },
+    drawMap () {
+      this.bounds = new google.maps.LatLngBounds()
 
-    const element = document.getElementById(this.mapName)
-    const mapCentre = this.markerCoordinates[0]
+      const element = document.getElementById(this.mapName)
+      const mapCentre = this.filteredPlaces[0].location[0]
 
-    const options = {
-      center: new google.maps.LatLng(mapCentre.latitude, mapCentre.longitude)
-    }
+      const options = {
+        center: new google.maps.LatLng(mapCentre.latitude, mapCentre.longitude)
+      }
 
-    this.map = new google.maps.Map(element, options)
-    this.directionsService = new google.maps.DirectionsService()
-    this.directionsRenderer = new google.maps.DirectionsRenderer()
+      this.map = new google.maps.Map(element, options)
+      this.directionsService = new google.maps.DirectionsService()
+      this.directionsRenderer = new google.maps.DirectionsRenderer()
 
-    this.directionsRenderer.setMap(this.map)
+      this.directionsRenderer.setMap(this.map)
 
-    this.markerCoordinates.forEach((coord) => {
-      const position = new google.maps.LatLng(coord.latitude, coord.longitude)
-      const marker = new google.maps.Marker({
-        position,
-        map: this.map,
-        animation: google.maps.Animation.DROP,
-        title: coord.title
+      this.filteredPlaces.forEach((coord, index) => {
+        const position = new google.maps.LatLng(coord.location[0].latitude, coord.location[0].longitude)
+        const marker = new google.maps.Marker({
+          position,
+          map: this.map,
+          animation: google.maps.Animation.DROP,
+          name: coord.name,
+          type: coord.type,
+          address: coord.address,
+          startTime: coord.startTime,
+          endTime: coord.endTime,
+          index: index
+        })
+        this.markers.push(marker)
+        this.map.fitBounds(this.bounds.extend(position))
       })
-      this.markers.push(marker)
-      this.map.fitBounds(this.bounds.extend(position))
-    })
 
-    var vm = this
-    this.markers.forEach((marker) => {
-      google.maps.event.addListener(marker, 'click', function () {
-        // infowindow.setContent(marker.title + '<a class=\"btn btn-danger\" @click.native=\"this.getDirections()\">directions</a>')
-        vm.dialog = true
-        // infowindow.open(this.map, marker)
+      var vm = this
+      this.markers.forEach((marker) => {
+        google.maps.event.addListener(marker, 'click', function () {
+          vm.openInfoDialog(marker)
+        })
       })
-    })
+    }
   },
   created () {
+    this.getPlaces()
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => {
         this.pos = {
@@ -165,9 +218,9 @@ export default {
   top: 8%;
 }
 
-.over-map { 
+.over-map {
   position: absolute;
-  top: 10px;
+  top: -5px;
   left: 10px;
   z-index: 99;
 }
