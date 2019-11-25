@@ -34,7 +34,8 @@
             </v-btn>
           </template>
           <v-list>
-            <v-list-item @click="logout">Log Out</v-list-item>
+            <v-list-item @click="goto('/profile')">Profile</v-list-item>
+            <v-list-item @click="logout">Sign Out</v-list-item>
           </v-list>
         </v-menu>
       </v-app-bar>
@@ -63,7 +64,7 @@
 
         <v-list dense>
           <v-list-item
-            v-for="item in sections"
+            v-for="item in adminSections"
             :key="item.text"
             :to="item.to"
           >
@@ -96,7 +97,7 @@
           ><b>Go</b>RECYCLE</v-btn>
         </v-toolbar-title>
         <v-toolbar-items
-          v-for="section in sections"
+          v-for="section in adminSections"
           :key="section.text"
         >
           <v-btn
@@ -123,7 +124,8 @@
             </v-btn>
           </template>
           <v-list>
-            <v-list-item @click="logout">Log Out</v-list-item>
+            <v-list-item @click="goto('/profile')">Profile</v-list-item>
+            <v-list-item @click="logout">Sign Out</v-list-item>
           </v-list>
         </v-menu>
       </v-app-bar>
@@ -153,6 +155,33 @@ export default {
     user: null,
     loginDialog: false,
     sections: [
+      {
+        to: '/',
+        text: 'Pick Up',
+        icon: 'directions_bus'
+      },
+      {
+        to: '/maps',
+        text: 'Maps',
+        icon: 'mdi-map'
+      },
+      {
+        to: '/info',
+        text: 'Info',
+        icon: 'info'
+      },
+      {
+        to: '/contact',
+        text: 'Contact',
+        icon: 'local_phone'
+      }
+    ],
+    sectionsAdmin: [
+      {
+        to: '/',
+        text: 'Pick Up',
+        icon: 'directions_bus'
+      },
       {
         to: '/maps',
         text: 'Maps',
@@ -188,6 +217,14 @@ export default {
         case 'xl': return 4
         default: return 0
       }
+    },
+    adminSections () {
+      if (this.user !== null) {
+        if (this.user.role === 'admin') return this.sectionsAdmin
+        else if (this.user.role === 'user') return this.sections
+        else return this.sections
+      }
+      return this.sections
     }
   },
   methods: {
@@ -204,7 +241,6 @@ export default {
       this.$router.go(0)
     },
     getMe () {
-      this.isSending = true
       var options = {
         headers: {
           'Content-Type': 'application/json',
@@ -212,10 +248,10 @@ export default {
         }
       }
       this.$http.get('users/me', options).then(response => {
-        this.user = response.data
-        this.isSending = false
+        window.localStorage.setItem('user', JSON.stringify(response.data))
+        this.user = JSON.parse(window.localStorage.user)
       }, response => {
-        this.isSending = false
+        console.log(error)
       })
     }
   },

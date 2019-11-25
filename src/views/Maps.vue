@@ -88,15 +88,17 @@ export default {
       })
     },
     filterPlaces () {
-      if (!this.filters.length)
+      if (!this.filters.length) {
         this.filteredPlaces = this.places
-      else
+      } else {
         this.filteredPlaces = this.places.filter(place => this.filters.includes(place.type))
+      }
 
-      if (!this.filteredPlaces.length)
+      if (!this.filteredPlaces.length) {
         this.errorDialog = true
-      else 
+      } else {
         this.drawMap()
+      }
     },
     reset () {
       this.filteredPlaces = this.places

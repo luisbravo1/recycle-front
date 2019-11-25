@@ -10,14 +10,14 @@
             <h1 class="nunito center">Get in touch</h1>
             <p>Escribenos si tienes dudas</p>
             <v-text-field
-              v-model="contact.name"
+              v-model="suggestion.name"
               label="Name"
               required
               outlined
             ></v-text-field>
 
             <v-text-field
-              v-model="contact.email"
+              v-model="suggestion.email"
               label="Email"
               type="email"
               hint="example@email.com"
@@ -27,7 +27,7 @@
             ></v-text-field>
 
             <v-textarea
-              v-model="contact.message"
+              v-model="suggestion.message"
               label="Message"
               counter
               required
@@ -47,6 +47,20 @@
         </v-card>
       </v-flex>
     </v-layout>
+    <v-dialog v-model="dialog" max-width="300" max-height="300" persistent>
+      <v-card>
+        <v-card-text class="justify-center">
+          <div class="text-center">
+            <img v-if="error" width="100" height="125" src="../assets/error.png"><br>
+            <img v-if="!error" width="100" height="125" src="../assets/success.png"><br>
+            <span>{{ dialogMessage }}</span>
+          </div>
+        </v-card-text>
+        <v-card-actions class="justify-center pb-4">
+          <v-btn dark color="green" @click="reset()">Accept</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 <script>
@@ -54,7 +68,10 @@ export default {
   name: 'contact-form',
   data: function () {
     return {
-      contact: {
+      dialog: false,
+      dialogMessage: '',
+      error: false,
+      suggestion: {
         name: '',
         email: '',
         message: ''
@@ -65,24 +82,22 @@ export default {
     }
   },
   methods: {
-    isValidName () {
-      var valid = this.name.length > 0
-      console.log('checking for a valid name: ' + valid)
-      return valid
+    postMessage () {
+      this.$http.post('suggestions/', this.suggestion).then(response => {
+        this.dialogMessage = 'Success posting suggestion'
+        this.dialog = true
+        this.error = false
+      }, response => {
+        this.dialogMessage = 'Error posting suggestion'
+        this.error = true
+        this.dialog = true
+      })
     },
-    isValidEmail () {
-      var valid = this.email.indexOf('@') > 0
-      console.log('checking for a valid email: ' + valid)
-      return valid
-    },
-    isValidMessage () {
-      var valid = (this.message.length > 0) &&
-          (this.message.length < this.maxLength)
-      console.log('checking for a valid message: ' + valid)
-      return valid
-    },
-    submitForm () {
-      console.log('submit here')
+    reset () {
+      this.dialog = false
+      this.dialogMessage = ''
+      this.error = false
+      this.suggestion = {}
     }
   },
   created () {

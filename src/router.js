@@ -6,16 +6,18 @@ import Maps from './views/Maps.vue'
 import AddPlace from './views/AddPlace.vue'
 import Contact from './views/Contact.vue'
 import Info from './views/Info.vue'
+import Pickup from './views/Pickup.vue'
+import Profile from './views/Profile.vue'
 
 Vue.use(Router)
 
 export default new Router({
   routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: Home
-    },
+    // {
+    //   path: '/',
+    //   name: 'home',
+    //   component: Home
+    // },
     {
       path: '/login',
       name: 'login',
@@ -40,6 +42,16 @@ export default new Router({
       path: '/info',
       name: 'info',
       component: Info
+    },
+    {
+      path: '/',
+      name: 'pickup',
+      component: Pickup
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: Profile
     }
   ]
 })
